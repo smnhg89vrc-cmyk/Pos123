@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="鹽酥雞收銀">
+<meta name="theme-color" content="#d60000">
+<title>鹽酥雞收銀</title>
+<style>
+:root{
+  --bg:#f5f5f5; --card:#fff; --text:#222; --muted:#777; --red:#d60000; --line:#e3e3e3; --btn:#eee;
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#161616;--card:#262626;--text:#f1f1f1;--muted:#aaa;--line:#3a3a3a;--btn:#383838;}
+}
+:root[data-theme="dark"]{--bg:#161616;--card:#262626;--text:#f1f1f1;--muted:#aaa;--line:#3a3a3a;--btn:#383838;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;background:var(--bg);color:var(--text);
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(230px + env(safe-area-inset-bottom,0px));
+  touch-action:manipulation;-webkit-user-select:none;user-select:none;}
+header{background:var(--red);color:#fff;text-align:center;padding:12px;font-size:22px;font-weight:bold;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;}
+.products{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px;}
+.product{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px 4px;font-size:19px;font-weight:bold;min-height:84px;line-height:1.4;}
+.product:active{background:var(--btn);}
+.product small{display:block;color:var(--red);font-size:17px;}
+.cart{background:var(--card);margin:0 10px 10px;border-radius:12px;padding:10px 12px;}
+.cart h2{margin:0 0 4px;font-size:18px;color:var(--muted);}
+.empty{color:var(--muted);padding:8px 0;}
+.cart-item{display:flex;justify-content:space-between;align-items:center;margin:6px 0;font-size:19px;gap:8px;}
+.cart-item .sub{color:var(--muted);font-size:15px;}
+.ops{display:flex;gap:6px;flex-shrink:0;}
+.qty-btn{font-size:22px;width:44px;height:44px;border:none;border-radius:10px;background:var(--btn);color:var(--text);}
+.qty-btn.x{color:var(--red);}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));z-index:10;}
+.total{font-size:30px;font-weight:bold;color:var(--red);text-align:center;margin-bottom:6px;}
+.quick{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px;}
+.quick button{font-size:17px;padding:10px 0;border:none;border-radius:8px;background:var(--btn);color:var(--text);font-weight:bold;}
+.row{display:flex;gap:6px;}
+.row input{flex:1;min-width:0;font-size:24px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);-webkit-user-select:text;user-select:text;}
+.row button{font-size:22px;font-weight:bold;border:none;border-radius:8px;padding:0 16px;}
+.pay{background:var(--red);color:#fff;}
+.clear{background:var(--btn);color:var(--text);}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);justify-content:center;align-items:center;z-index:20;}
+.modal-content{background:var(--card);padding:18px;border-radius:16px;text-align:center;width:min(92vw,360px);}
+.modal-content h2{margin:0 0 8px;font-size:26px;}
+.modal-content button{font-size:30px;margin:6px;width:88px;height:64px;border:none;border-radius:12px;background:var(--btn);color:var(--text);}
+.modal-content .ok{background:var(--red);color:#fff;font-size:26px;width:120px;}
+#tempQty{font-size:46px;display:inline-block;min-width:60px;}
+.change-screen{display:none;position:fixed;inset:0;background:var(--card);z-index:30;justify-content:center;align-items:center;flex-direction:column;text-align:center;padding:20px;}
+.change-title{font-size:44px;font-weight:bold;}
+.change-value{font-size:30vw;color:var(--red);font-weight:bold;line-height:1.1;}
+.change-info{font-size:20px;color:var(--muted);margin-bottom:20px;}
+.back-btn{font-size:32px;padding:16px 44px;border:none;border-radius:14px;background:var(--red);color:#fff;}
+.mic{background:#1a7f37;color:#fff;}
+.mic.on{background:#c00;animation:pulse 1s infinite;}
+@keyframes pulse{50%{opacity:.6}}
+.vtoggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:14px;border:1px solid #fff;background:transparent;color:#fff;border-radius:8px;padding:6px 8px;}
+.vlist{font-size:22px;text-align:left;margin:10px 0;line-height:1.7;}
+.vheard{color:var(--muted);font-size:15px;margin-bottom:6px;}
+</style>
+</head>
+<body>
+<header>🍗 鹽酥雞收銀<button class="vtoggle" id="vtoggle" onclick="toggleSpeak()">🔊 開</button></header>
+<div class="products" id="products"></div>
+<div class="cart"><h2>訂單內容</h2><div id="cart"></div></div>
+
+<div class="bar">
+  <div class="total" id="total">總計：0 元</div>
+  <div class="quick" id="quick"></div>
+  <div class="row">
+    <input type="number" inputmode="numeric" id="cash" placeholder="收現金額">
+    <button class="mic" id="micBtn" onclick="startVoice()">🎤</button>
+    <button class="pay" onclick="checkout()">結帳</button>
+    <button class="clear" onclick="clearCart()">清空</button>
+  </div>
+</div>
+
+<div class="modal" id="qtyModal">
+  <div class="modal-content">
+    <h2 id="modalName"></h2>
+    <button onclick="addQty(1)">×1</button><button onclick="addQty(2)">×2</button><button onclick="addQty(3)">×3</button>
+    <br>
+    <button onclick="changeQty(-1)">－</button><span id="tempQty">1</span><button onclick="changeQty(1)">＋</button>
+    <br>
+    <button class="ok" onclick="confirmQty()">加入</button><button onclick="closeModal()">取消</button>
+  </div>
+</div>
+
+<div class="modal" id="voiceModal">
+  <div class="modal-content">
+    <h2 id="voiceTitle">請說話…</h2>
+    <div class="vheard" id="vheard"></div>
+    <textarea id="vtext" rows="2" placeholder="也可以點鍵盤上的 🎤 說話，或直接打字：鹽酥雞兩份 雞心三份" style="display:none;width:100%;font-size:20px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);-webkit-user-select:text;user-select:text;" oninput="textHeard(this.value)"></textarea>
+    <div class="vlist" id="vlist"></div>
+    <button class="ok" id="vok" onclick="confirmVoice()" style="display:none">加入</button>
+    <button onclick="startVoice()" id="vretry" style="display:none;font-size:22px">重說</button>
+    <button onclick="closeVoice()" style="font-size:22px">取消</button>
+  </div>
+</div>
+
+<div class="change-screen" id="changeScreen">
+  <div class="change-title" id="changeTitle">找零</div>
+  <div class="change-value" id="changeValue">0</div>
+  <div class="change-info" id="changeInfo"></div>
+  <button class="back-btn" onclick="closeChange()">返回</button>
+</div>
+
+<script>
+const products=[
+{name:"鹽酥雞",price:60},{name:"魷魚",price:60},{name:"地瓜條",price:40},
+{name:"雞皮",price:40},{name:"四季豆",price:40},{name:"玉米",price:45},
+{name:"雞屁股",price:30},{name:"雞心",price:30},{name:"雞胗",price:30},
+{name:"花枝丸",price:30},{name:"甜不辣",price:25},{name:"豬血糕",price:20},
+{name:"豆乾",price:20},{name:"芋頭籤",price:20},{name:"芋頭巧",price:20},
+{name:"百葉豆腐",price:20},{name:"魚板",price:20},{name:"豆包",price:20},
+{name:"雞脖子",price:20}
+];
+
+let cart={};
+let currentItem=null;
+let tempQty=1;
+let lastShort=false;
+
+try{const s=localStorage.getItem("cart");if(s)cart=JSON.parse(s)||{};}catch(e){}
+function save(){try{localStorage.setItem("cart",JSON.stringify(cart));}catch(e){}}
+
+const productDiv=document.getElementById("products");
+products.forEach(item=>{
+  const btn=document.createElement("button");
+  btn.className="product";
+  btn.innerHTML=`${item.name}<small>$${item.price}</small>`;
+  btn.onclick=()=>openModal(item);
+  productDiv.appendChild(btn);
+});
+
+const quick=document.getElementById("quick");
+[["剛好",0],["100",100],["200",200],["500",500],["1000",1000]].forEach(([label,v])=>{
+  const b=document.createElement("button");
+  b.textContent=label;
+  b.onclick=()=>{document.getElementById("cash").value=v===0?getTotal():v;};
+  quick.appendChild(b);
+});
+
+function getTotal(){let t=0;for(const n in cart)t+=cart[n].price*cart[n].qty;return t;}
+
+function openModal(item){
+  currentItem=item;tempQty=1;
+  document.getElementById("tempQty").innerText=tempQty;
+  document.getElementById("modalName").innerText=item.name+" $"+item.price;
+  document.getElementById("qtyModal").style.display="flex";
+}
+function closeModal(){document.getElementById("qtyModal").style.display="none";}
+function addQty(q){tempQty=q;document.getElementById("tempQty").innerText=tempQty;}
+function changeQty(v){tempQty=Math.max(1,tempQty+v);document.getElementById("tempQty").innerText=tempQty;}
+function confirmQty(){
+  if(!cart[currentItem.name])cart[currentItem.name]={price:currentItem.price,qty:0};
+  cart[currentItem.name].qty+=tempQty;
+  renderCart();closeModal();
+}
+
+function renderCart(){
+  const box=document.getElementById("cart");
+  box.innerHTML="";
+  const names=Object.keys(cart);
+  if(!names.length){box.innerHTML='<div class="empty">尚未點餐</div>';}
+  names.forEach(name=>{
+    const it=cart[name];
+    const row=document.createElement("div");
+    row.className="cart-item";
+    row.innerHTML=`<span>${name} x ${it.qty}<div class="sub">$${it.price*it.qty}</div></span>
+      <div class="ops"><button class="qty-btn">-</button><button class="qty-btn">+</button><button class="qty-btn x">✕</button></div>`;
+    const b=row.querySelectorAll("button");
+    b[0].onclick=()=>updateQty(name,-1);
+    b[1].onclick=()=>updateQty(name,1);
+    b[2].onclick=()=>removeItem(name);
+    box.appendChild(row);
+  });
+  document.getElementById("total").innerText="總計："+getTotal()+" 元";
+  save();
+}
+function updateQty(name,v){cart[name].qty+=v;if(cart[name].qty<=0)delete cart[name];renderCart();}
+function removeItem(name){delete cart[name];renderCart();}
+function clearCart(){cart={};renderCart();}
+
+function checkout(){
+  const total=getTotal();
+  if(total===0){alert("尚未點餐");return;}
+  const cash=parseInt(document.getElementById("cash").value);
+  if(isNaN(cash)){alert("請輸入收現金額");return;}
+  const change=cash-total;
+  lastShort=change<0;
+  document.getElementById("changeTitle").innerText=lastShort?"金額不足":"找零";
+  document.getElementById("changeValue").innerText=lastShort?Math.abs(change):change;
+  document.getElementById("changeInfo").innerText="總計 "+total+"　收現 "+cash;
+  document.getElementById("changeScreen").style.display="flex";
+  speak(lastShort?("金額不足，還差"+Math.abs(change)+"元"):("總共"+total+"元，收"+cash+"元，找"+change+"元"));
+}
+function closeChange(){
+  document.getElementById("changeScreen").style.display="none";
+  if(!lastShort){cart={};document.getElementById("cash").value="";renderCart();}
+}
+
+/* ===== 語音 ===== */
+let speakOn=true;
+try{speakOn=localStorage.getItem("speakOn")!=="0";}catch(e){}
+function paintToggle(){document.getElementById("vtoggle").innerText=speakOn?"🔊 開":"🔇 關";}
+function toggleSpeak(){speakOn=!speakOn;try{localStorage.setItem("speakOn",speakOn?"1":"0");}catch(e){}paintToggle();if(speakOn)speak("語音報價已開啟");}
+function speak(t){
+  if(!speakOn||!window.speechSynthesis)return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="zh-TW";u.rate=1;speechSynthesis.speak(u);}catch(e){}
+}
+paintToggle();
+
+const CN={"零":0,"一":1,"二":2,"兩":2,"三":3,"四":4,"五":5,"六":6,"七":7,"八":8,"九":9};
+function toNum(str){
+  if(/^\d+$/.test(str))return parseInt(str);
+  if(str==="十")return 10;
+  if(str.includes("十")){
+    const [a,b]=str.split("十");
+    return (a?CN[a]:1)*10+(b?CN[b]:0);
+  }
+  return CN[str]||1;
+}
+function parseOrder(text){
+  const names=products.map(p=>p.name).sort((a,b)=>b.length-a.length);
+  const re=new RegExp(names.join("|"),"g");
+  const out={};
+  let m;
+  while((m=re.exec(text))!==null){
+    const rest=text.slice(m.index+m[0].length);
+    const q=rest.match(/^[\s,，、]*([0-9]+|[零一二兩三四五六七八九十]+)\s*(份|個|包|袋|串|塊|條|盒)?/);
+    let qty=1;
+    if(q){qty=toNum(q[1]);if(!qty||qty>50)qty=1;}
+    out[m[0]]=(out[m[0]]||0)+qty;
+  }
+  return out;
+}
+
+let recog=null,heard={};
+function startVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const vm=document.getElementById("voiceModal");
+  vm.style.display="flex";
+  document.getElementById("vheard").innerText="";
+  document.getElementById("vlist").innerText="";
+  document.getElementById("vok").style.display="none";
+  document.getElementById("vretry").style.display="none";
+  heard={};
+  const tb=document.getElementById("vtext");tb.value="";tb.style.display="none";
+  if(!SR){
+    document.getElementById("voiceTitle").innerText="此瀏覽器不支援語音";
+    document.getElementById("vheard").innerText="改用鍵盤上的 🎤 麥克風說話，或直接打字：";
+    showTextBox();
+    return;
+  }
+  try{if(recog)recog.abort();}catch(e){}
+  recog=new SR();
+  recog.lang="zh-TW";
+  recog.interimResults=true;
+  recog.continuous=false;
+  document.getElementById("voiceTitle").innerText="🎤 請說話…";
+  document.getElementById("micBtn").classList.add("on");
+  recog.onresult=e=>{
+    let t="";
+    for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
+    document.getElementById("vheard").innerText="聽到："+t;
+    heard=parseOrder(t);
+    showHeard();
+  };
+  recog.onerror=e=>{
+    const msg={"not-allowed":"麥克風被封鎖，請到瀏覽器設定允許麥克風","service-not-allowed":"麥克風被封鎖，請到瀏覽器設定允許麥克風","no-speech":"沒聽到聲音，請再說一次","network":"需要連網才能使用語音"}[e.error]||("語音錯誤："+e.error);
+    document.getElementById("voiceTitle").innerText=msg;
+    document.getElementById("vheard").innerText="改用鍵盤上的 🎤 麥克風說話，或直接打字：";
+    document.getElementById("vretry").style.display="inline-block";
+    showTextBox();
+  };
+  recog.onend=()=>{
+    document.getElementById("micBtn").classList.remove("on");
+    if(Object.keys(heard).length)document.getElementById("voiceTitle").innerText="確認訂單";
+    else if(document.getElementById("voiceTitle").innerText.startsWith("🎤")){
+      document.getElementById("voiceTitle").innerText="沒有聽到品項";
+    }
+    document.getElementById("vretry").style.display="inline-block";
+  };
+  try{recog.start();}catch(e){document.getElementById("voiceTitle").innerText="無法啟動麥克風";document.getElementById("vheard").innerText="改用鍵盤上的 🎤 麥克風說話，或直接打字：";showTextBox();}
+}
+function showTextBox(){
+  const t=document.getElementById("vtext");
+  t.style.display="block";
+  setTimeout(()=>{try{t.focus();}catch(e){}},100);
+}
+function textHeard(v){
+  heard=parseOrder(v);
+  showHeard();
+}
+function showHeard(){
+  const names=Object.keys(heard);
+  document.getElementById("vlist").innerHTML=names.map(n=>n+" × "+heard[n]).join("<br>");
+  document.getElementById("vok").style.display=names.length?"inline-block":"none";
+}
+function confirmVoice(){
+  for(const n in heard){
+    const p=products.find(x=>x.name===n);
+    if(!cart[n])cart[n]={price:p.price,qty:0};
+    cart[n].qty+=heard[n];
+  }
+  renderCart();closeVoice();
+}
+function closeVoice(){
+  try{if(recog)recog.abort();}catch(e){}
+  document.getElementById("micBtn").classList.remove("on");
+  document.getElementById("voiceModal").style.display="none";
+}
+
+renderCart();
+</script>
+</body>
+</html>
